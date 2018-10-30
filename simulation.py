@@ -4,8 +4,8 @@ import random
 from collaboration import *
 import credit_game
 
-MAJORITY_SIZE = 80
-MINORITY_SIZE = 20
+MAJORITY_SIZE = 800
+MINORITY_SIZE = 200
 
 ASK_STRATEGIES = [credit_game.LOW, credit_game.MED, credit_game.HIGH]
 
@@ -41,16 +41,17 @@ def print_stats():
     maj_same_group, maj_diff_group = get_stats(majorities)
     min_same_group, min_diff_group = get_stats(minorities)
     to_print = (maj_same_group, maj_diff_group, min_same_group, min_diff_group)
-    print('maj->maj=%s maj->min=%s min->min min->maj' % maj_same_group)
+    print('maj->maj=%s maj->min=%s min->min=%s min->maj=%s' % to_print)
 
 def avg(sample):
     return float(sum(sample)) / float(len(sample))
 
-for i in range(10000000):
+for i in range(1000000):
     if i % 10000 == 0:
         print_stats()
     do_ask()
     do_update()
+
 print('')
 print('FINAL')
 print_stats()

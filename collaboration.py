@@ -49,8 +49,12 @@ class Collaborator:
 
     def update_strategy(self):
         if not self.last_collaboration_attempt: return
+
         other = self.last_collaboration_attempt.collaborator_for(self)
         max_payoff = self.last_collaboration_attempt.credit_for(self)
+        min_payoff = 0
+        if self.worst_collaboration():
+            min_payoff = self.worst_collaboration().credit_for(self)
 
         their_ask = None
         if self.last_collaboration_attempt.collab_a == self:
@@ -64,13 +68,16 @@ class Collaborator:
             potential_collaboration = Collaboration(
                     self, other, self._ask_for(other, strategy), their_ask)
             new_payoff = potential_collaboration.credit_for(self)
-            if new_payoff > max_payoff:
+            if new_payoff > max_payoff and new_payoff > min_payoff:
                 max_payoff = new_payoff
                 self.cur_strategy = strategy
 
     def _ask_for(self, other, strategy):
         if other.group == self.group: return strategy.same_group_ask
         else:                         return strategy.diff_group_ask
+
+    def __repr__(self):
+        return "[" + self.group + "]"
 
 
 class Collaboration:
