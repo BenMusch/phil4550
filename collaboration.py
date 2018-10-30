@@ -2,12 +2,14 @@ import credit_game
 import random
 
 MAX_COLLABORATORS = 3
-ASK_STRATEGIES = [credit_game.LOW, credit_game.MED, credit_game.HIGH]
 
 class AskStrategy:
     def __init__(self, same_group_ask, diff_group_ask):
         self.same_group_ask = same_group_ask
         self.diff_group_ask = diff_group_ask
+
+    def __repr__(self):
+        return '<same={} diff={}>'.format(self.same_group_ask, self.diff_group_ask)
 
 
 class Collaborator:
@@ -15,12 +17,12 @@ class Collaborator:
     def __init__(self, strategy_set, group):
         self.collaborations = set()
         self.strategy_set = strategy_set
-        self.cur_strategy = random.sample(self.strategy_set)
+        self.cur_strategy = random.sample(self.strategy_set, 1)[0]
         self.group = group
         self.last_collaboration_attempt = None
 
     def ask_for(self, other):
-        return self._ask_for(self, other, self.cur_strategy)
+        return self._ask_for(other, self.cur_strategy)
 
     def collaboration_with(self, other):
         my_ask, their_ask = self.ask_for(other), other.ask_for(self)
@@ -29,20 +31,23 @@ class Collaborator:
     def should_collaborate_with(self, other):
         our_collab_credit = self.collaboration_with(other).credit_for(self)
         return our_collab_credit > 0 and \
-                (self.worst_collaboration().credit_for(self) < our_collab_credit or \
+                (not self.collaborations or \
+                 self.worst_collaboration().credit_for(self) < our_collab_credit or \
                  len(self.collaborations) < MAX_COLLABORATORS)
 
     def worst_collaboration(self):
+        if not self.collaborations:
+            return None
         return min(self.collaborations, key=lambda c: c.credit_for(self))
 
     def enforce_max_collaborations(self):
-        if len(self.collaborations) <= MAX_COLLABOTORS: return
+        if len(self.collaborations) <= MAX_COLLABORATORS: return
         self.worst_collaboration().end()
 
     def total_credit(self):
         return sum(map(lambda c: c.credit_for(self), self.collaborations))
 
-    def update_strategies(self):
+    def update_strategy(self):
         if not self.last_collaboration_attempt: return
         other = self.last_collaboration_attempt.collaborator_for(self)
         max_payoff = self.last_collaboration_attempt.credit_for(self)
@@ -54,15 +59,16 @@ class Collaborator:
             their_ask = self.last_collaboration_attempt.a_ask
 
         # shuffle strategies to avoid this affecting stuff
-        for strategy in random.shuffle(self.strategy_set):
+        random.shuffle(self.strategy_set)
+        for strategy in self.strategy_set:
             potential_collaboration = Collaboration(
-                    self, other, self._ask_for(self, other, strategy), their_ask)
+                    self, other, self._ask_for(other, strategy), their_ask)
             new_payoff = potential_collaboration.credit_for(self)
             if new_payoff > max_payoff:
                 max_payoff = new_payoff
                 self.cur_strategy = strategy
 
-    def _ask_for(self, other, strategy)
+    def _ask_for(self, other, strategy):
         if other.group == self.group: return strategy.same_group_ask
         else:                         return strategy.diff_group_ask
 
