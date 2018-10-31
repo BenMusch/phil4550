@@ -20,6 +20,7 @@ class Collaborator:
         self.cur_strategy = random.sample(self.strategy_set, 1)[0]
         self.group = group
         self.last_collaboration_attempt = None
+        self.update_strategy = self.update_strategy_1
 
     def ask_for(self, other):
         return self._ask_for(other, self.cur_strategy)
@@ -47,11 +48,16 @@ class Collaborator:
     def total_credit(self):
         return sum(map(lambda c: c.credit_for(self), self.collaborations))
 
-    def update_strategy(self):
+    def update_strategy_1(self):
+        """
+        update_strategy implementation 1:
+         - Updates assuming re-negotatiation will all collaborators
+         - Ignores any request made in the last round
+         - Uses the current ask of the current collaborators, rather than the
+           ask at the time of the collaboration
+        """
         if not self.collaborations: return
         max_payoff = -1
-        #print(self)
-        #print(self.collaborations)
         for strategy in self.strategy_set:
             payoff = 0
             for c in self.collaborations:
@@ -59,11 +65,9 @@ class Collaborator:
                 their_ask = them.ask_for(self)
                 my_ask = self._ask_for(them, strategy)
                 payoff += credit_game.get_payoffs(my_ask, their_ask)[0]
-            #print("Payoff of %s is %s" % (strategy, payoff))
             if payoff > max_payoff:
                 max_payoff = payoff
                 self.cur_strategy = strategy
-        #print(self)
 
     def _ask_for(self, other, strategy):
         if other.group == self.group: return strategy.same_group_ask
@@ -74,27 +78,21 @@ class Collaborator:
 
 
 class Collaboration:
-    def __init__(self, collab_a, collab_b):
+    def __init__(self, collab_a, collab_b, a_ask, b_ask):
         self.collab_a = collab_a
         self.collab_b = collab_b
+        self.a_ask = a_ask
+        self.b_ask = b_ask
+
+    def ask_from(self, collaborator):
+        return self._return_if(collaborator, self.a_ask, self.b_ask)
 
     def collaborator_for(self, collaborator):
-        if collaborator == self.collab_a:
-            return self.collab_b
-        elif collaborator == self.collab_b:
-            return self.collab_a
-        else:
-            raise ValueError('%s is not a part of this collaboration' % collaborator)
+        return self._return_if(collaborator, self.collab_b, self.collab_b)
 
     def credit_for(self, collaborator):
-        a_ask, b_ask = self.collab_a.ask_for(self.collab_b), self.collab_b.ask_for(self.collab_a)
-        a_credit, b_credit = credit_game.get_payoffs(a_ask, b_ask)
-        if collaborator == self.collab_a:
-            return a_credit
-        elif collaborator == self.collab_b:
-            return b_credit
-        else:
-            raise ValueError('%s is not a part of this collaboration' % collaborator)
+        a_credit, b_credit = credit_game.get_payoffs(self.a_ask, self.b_ask)
+        return self._return_if(collaborator, a_credit, b_credit)
 
     def is_fair(self):
         return self.collab_a.ask_for(self.collab_b) == self.collab_b.ask_for(self.collab_a)
@@ -122,3 +120,11 @@ class Collaboration:
 
     def __repr__(self):
         return "<a={} b={}>".format(self.collab_a, self.collab_b)
+
+    def _return_if(self, collaborator, if_a, if_b):
+        if collaborator == self.collab_a:
+            return if_a
+        elif collaborator == self.collab_b:
+            return if_b
+        else:
+            raise ValueError('%s is not a part of this collaboration' % collaborator)

@@ -4,11 +4,23 @@ import random
 from collaboration import *
 import credit_game
 
+################################################################################
+# CONFIGURATION ################################################################
+################################################################################
+
 MAJORITY = "MAJORITY"
 MINORITY = "MINORITY"
 
 MAJORITY_SIZE = 800
 MINORITY_SIZE = 200
+
+ROUNDS = 100000
+
+def get_updates_per_round():
+    return random.sample(range(1,20), 1)[0]
+
+def get_collabs_per_round():
+    return random.sample(range(2,10), 1)[0]
 
 ASK_STRATEGIES = [credit_game.LOW, credit_game.MED, credit_game.HIGH]
 
@@ -23,16 +35,29 @@ minorities = [ Collaborator(generate_strat_set(), MINORITY) for _ in range(MINOR
 majorities = [ Collaborator(generate_strat_set(), MAJORITY) for _ in range(MAJORITY_SIZE) ]
 all_collaborators = minorities + majorities
 
+################################################################################
+# ACTIONS ######################################################################
+################################################################################
+
 def do_ask():
-    asker, askee = random.sample(all_collaborators, 2)
-    potential_collaboration = asker.collaboration_with(askee)
-    askee.last_collaboration_attempt = potential_collaboration
-    asker.last_collaboration_attempt = potential_collaboration
-    if asker.should_collaborate_with(askee) and askee.should_collaborate_with(asker):
-        potential_collaboration.start()
+    collaborators_seen = set()
+    for _ in range(get_collabs_per_round()):
+        asker, askee = random.sample(all_collaborators, 2)
+        while asker in collaborators_seen or askee in collaborators_seen:
+            asker, askee = random.sample(all_collaborators, 2)
+        potential_collaboration = asker.collaboration_with(askee)
+        askee.last_collaboration_attempt = potential_collaboration
+        asker.last_collaboration_attempt = potential_collaboration
+        if asker.should_collaborate_with(askee) and askee.should_collaborate_with(asker):
+            potential_collaboration.start()
 
 def do_update():
-    random.sample(all_collaborators, 1)[0].update_strategy()
+    for collaborator in random.sample(all_collaborators, get_updates_per_round()):
+        collaborator.update_strategy()
+
+################################################################################
+# ANALYSIS #####################################################################
+################################################################################
 
 def get_stats(collaborators):
     same_group = [ float(c.cur_strategy.same_group_ask) for c in collaborators ]
@@ -67,7 +92,11 @@ def print_stats():
 def avg(sample):
     return float(sum(sample)) / float(len(sample))
 
-for i in range(100000):
+################################################################################
+# MAIN #########################################################################
+################################################################################
+
+for i in range(ROUNDS):
     if i % 10000 == 0:
         print_stats()
     do_ask()
