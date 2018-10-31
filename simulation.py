@@ -4,6 +4,9 @@ import random
 from collaboration import *
 import credit_game
 
+MAJORITY = "MAJORITY"
+MINORITY = "MINORITY"
+
 MAJORITY_SIZE = 800
 MINORITY_SIZE = 200
 
@@ -16,8 +19,8 @@ def generate_strat_set():
             strat_set.append(AskStrategy(same_group_ask, diff_group_ask))
     return strat_set
 
-minorities = [ Collaborator(generate_strat_set(), "MINORITY") for _ in range(MINORITY_SIZE) ]
-majorities = [ Collaborator(generate_strat_set(), "MAJORITY") for _ in range(MAJORITY_SIZE) ]
+minorities = [ Collaborator(generate_strat_set(), MINORITY) for _ in range(MINORITY_SIZE) ]
+majorities = [ Collaborator(generate_strat_set(), MAJORITY) for _ in range(MAJORITY_SIZE) ]
 all_collaborators = minorities + majorities
 
 def do_ask():
@@ -45,7 +48,7 @@ def print_stats():
     total = 0.0
     fair = 0.0
     diverse = 0.0
-    winning = { "MAJORITY": 0.0, "MINORITY": 0.0, "NONE": 0.0 }
+    winning = { MAJORITY: 0.0, MINORITY: 0.0, "NONE": 0.0 }
     # Hacky: Add .5 since there's 1 collaboration instance for each collaborator
     for collaborator in all_collaborators:
         for collaboration in collaborator.collaborations:
