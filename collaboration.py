@@ -27,7 +27,7 @@ class Collaborator:
 
     def collaboration_with(self, other):
         my_ask, their_ask = self.ask_for(other), other.ask_for(self)
-        return Collaboration(self, other)
+        return Collaboration(self, other, my_ask, their_ask)
 
     def should_collaborate_with(self, other):
         our_collab_credit = self.collaboration_with(other).credit_for(self)
