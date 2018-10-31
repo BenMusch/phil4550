@@ -41,12 +41,30 @@ def print_stats():
     maj_same_group, maj_diff_group = get_stats(majorities)
     min_same_group, min_diff_group = get_stats(minorities)
     to_print = (maj_same_group, maj_diff_group, min_same_group, min_diff_group)
+
+    total = 0.0
+    fair = 0.0
+    diverse = 0.0
+    winning = { "MAJORITY": 0.0, "MINORITY": 0.0, "NONE": 0.0 }
+    # Hacky: Add .5 since there's 1 collaboration instance for each collaborator
+    for collaborator in all_collaborators:
+        for collaboration in collaborator.collaborations:
+            total += 0.5
+            winning[collaboration.benefitting_group()] += 0.5
+            if collaboration.is_diverse(): diverse += 0.5
+            if collaboration.is_fair(): fair += 0.5
+
+
     print('maj->maj=%s maj->min=%s min->min=%s min->maj=%s' % to_print)
+    if total > 0:
+        print('%s/%s = %s diverse collab rate' % (diverse, total, diverse / total))
+        print('%s/%s = %s fair collab rate' % (fair, total, fair / total))
+        print(winning)
 
 def avg(sample):
     return float(sum(sample)) / float(len(sample))
 
-for i in range(1000000):
+for i in range(100000):
     if i % 10000 == 0:
         print_stats()
     do_ask()

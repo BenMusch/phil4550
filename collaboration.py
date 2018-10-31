@@ -26,7 +26,7 @@ class Collaborator:
 
     def collaboration_with(self, other):
         my_ask, their_ask = self.ask_for(other), other.ask_for(self)
-        return Collaboration(self, other, my_ask, their_ask)
+        return Collaboration(self, other)
 
     def should_collaborate_with(self, other):
         our_collab_credit = self.collaboration_with(other).credit_for(self)
@@ -48,44 +48,35 @@ class Collaborator:
         return sum(map(lambda c: c.credit_for(self), self.collaborations))
 
     def update_strategy(self):
-        if not self.last_collaboration_attempt: return
-
-        other = self.last_collaboration_attempt.collaborator_for(self)
-        max_payoff = self.last_collaboration_attempt.credit_for(self)
-        min_payoff = 0
-        if self.worst_collaboration():
-            min_payoff = self.worst_collaboration().credit_for(self)
-
-        their_ask = None
-        if self.last_collaboration_attempt.collab_a == self:
-            their_ask = self.last_collaboration_attempt.b_ask
-        else:
-            their_ask = self.last_collaboration_attempt.a_ask
-
-        # shuffle strategies to avoid this affecting stuff
-        random.shuffle(self.strategy_set)
+        if not self.collaborations: return
+        max_payoff = -1
+        #print(self)
+        #print(self.collaborations)
         for strategy in self.strategy_set:
-            potential_collaboration = Collaboration(
-                    self, other, self._ask_for(other, strategy), their_ask)
-            new_payoff = potential_collaboration.credit_for(self)
-            if new_payoff > max_payoff and new_payoff > min_payoff:
-                max_payoff = new_payoff
+            payoff = 0
+            for c in self.collaborations:
+                them = c.collaborator_for(self)
+                their_ask = them.ask_for(self)
+                my_ask = self._ask_for(them, strategy)
+                payoff += credit_game.get_payoffs(my_ask, their_ask)[0]
+            #print("Payoff of %s is %s" % (strategy, payoff))
+            if payoff > max_payoff:
+                max_payoff = payoff
                 self.cur_strategy = strategy
+        #print(self)
 
     def _ask_for(self, other, strategy):
         if other.group == self.group: return strategy.same_group_ask
         else:                         return strategy.diff_group_ask
 
     def __repr__(self):
-        return "[" + self.group + "]"
+        return "<group={} strat={}>".format(self.group, self.cur_strategy)
 
 
 class Collaboration:
-    def __init__(self, collab_a, collab_b, a_ask, b_ask):
+    def __init__(self, collab_a, collab_b):
         self.collab_a = collab_a
         self.collab_b = collab_b
-        self.a_ask = a_ask
-        self.b_ask = b_ask
 
     def collaborator_for(self, collaborator):
         if collaborator == self.collab_a:
@@ -96,7 +87,8 @@ class Collaboration:
             raise ValueError('%s is not a part of this collaboration' % collaborator)
 
     def credit_for(self, collaborator):
-        a_credit, b_credit = credit_game.get_payoffs(self.a_ask, self.b_ask)
+        a_ask, b_ask = self.collab_a.ask_for(self.collab_b), self.collab_b.ask_for(self.collab_a)
+        a_credit, b_credit = credit_game.get_payoffs(a_ask, b_ask)
         if collaborator == self.collab_a:
             return a_credit
         elif collaborator == self.collab_b:
@@ -105,7 +97,15 @@ class Collaboration:
             raise ValueError('%s is not a part of this collaboration' % collaborator)
 
     def is_fair(self):
-        return self.a_ask == self.b_ask
+        return self.collab_a.ask_for(self.collab_b) == self.collab_b.ask_for(self.collab_a)
+
+    def benefitting_group(self):
+        if self.is_fair() or (not self.is_diverse()):
+            return "NONE"
+        elif self.collab_a.ask_for(self.collab_b) > self.collab_b.ask_for(self.collab_a):
+            return self.collab_a.group
+        else:
+            return self.collab_b.group
 
     def is_diverse(self):
         return self.collab_a.group != self.collab_b.group
@@ -119,3 +119,6 @@ class Collaboration:
     def end(self):
         self.collab_a.collaborations.remove(self)
         self.collab_b.collaborations.remove(self)
+
+    def __repr__(self):
+        return "<a={} b={}>".format(self.collab_a, self.collab_b)
