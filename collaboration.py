@@ -20,7 +20,7 @@ class Collaborator:
         self.cur_strategy = random.sample(self.strategy_set, 1)[0]
         self.group = group
         self.last_collaboration_attempt = None
-        self.update_strategy = self.update_strategy_1
+        self.update_strategy = self.update_strategy_3
 
     def ask_for(self, other):
         return self._ask_for(other, self.cur_strategy)
@@ -69,6 +69,55 @@ class Collaborator:
                 max_payoff = payoff
                 self.cur_strategy = strategy
 
+    def update_strategy_2(self):
+        """
+        update_strategy implementation 2:
+         - Updates assuming re-negotatiation will all collaborators
+         - Ignores any request made in the last round
+         - Uses the ask at the time of collaboration, rather than the
+           current strategy of the collaborator
+        """
+        if not self.collaborations: return
+        max_payoff = -1
+        for strategy in self.strategy_set:
+            payoff = 0
+            for c in self.collaborations:
+                them = c.collaborator_for(self)
+                their_ask = c.ask_from(them)
+                my_ask = self._ask_for(them, strategy)
+                payoff += credit_game.get_payoffs(my_ask, their_ask)[0]
+            if payoff > max_payoff:
+                max_payoff = payoff
+                self.cur_strategy = strategy
+
+    def update_strategy_3(self):
+        """
+        update_strategy implementation 3:
+         - Updates assuming re-negotatiation will all collaborators
+         - Takes into account the request made during the round
+         - Uses the ask at the time of collaboration, rather than the
+           current strategy of the collaborator
+        """
+        if not self.collaborations: return
+        max_payoff = -1
+        for strategy in self.strategy_set:
+            payoffs = []
+            collaborations_to_consider = self.collaborations.copy()
+            if self.last_collaboration_attempt:
+                collaborations_to_consider.add(self.last_collaboration_attempt)
+            for c in collaborations_to_consider:
+                them = c.collaborator_for(self)
+                their_ask = c.ask_from(them)
+                my_ask = self._ask_for(them, strategy)
+                payoffs.append(credit_game.get_payoffs(my_ask, their_ask)[0])
+
+            payoffs = sorted(payoffs, reverse=True)[:MAX_COLLABORATORS]
+
+            payoff = sum(payoffs)
+            if payoff > max_payoff:
+                max_payoff = payoff
+                self.cur_strategy = strategy
+
     def _ask_for(self, other, strategy):
         if other.group == self.group: return strategy.same_group_ask
         else:                         return strategy.diff_group_ask
@@ -88,7 +137,7 @@ class Collaboration:
         return self._return_if(collaborator, self.a_ask, self.b_ask)
 
     def collaborator_for(self, collaborator):
-        return self._return_if(collaborator, self.collab_b, self.collab_b)
+        return self._return_if(collaborator, self.collab_b, self.collab_a)
 
     def credit_for(self, collaborator):
         a_credit, b_credit = credit_game.get_payoffs(self.a_ask, self.b_ask)

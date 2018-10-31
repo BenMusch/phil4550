@@ -55,6 +55,10 @@ def do_update():
     for collaborator in random.sample(all_collaborators, get_updates_per_round()):
         collaborator.update_strategy()
 
+def finish_round():
+    for collaborator in all_collaborators:
+        collaborator.last_collaboration_attempt = None
+
 ################################################################################
 # ANALYSIS #####################################################################
 ################################################################################
@@ -97,10 +101,10 @@ def avg(sample):
 ################################################################################
 
 for i in range(ROUNDS):
-    if i % 10000 == 0:
-        print_stats()
+    if i % 10000 == 0: print_stats()
     do_ask()
     do_update()
+    finish_round()
 
 print('')
 print('FINAL')
