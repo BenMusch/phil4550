@@ -12,8 +12,8 @@ import credit_game
 MAJORITY = "MAJORITY"
 MINORITY = "MINORITY"
 
-MAJORITY_SIZE = 800
-MINORITY_SIZE = 200
+MAJORITY_SIZE = 50
+MINORITY_SIZE = 50
 
 NUM_ALLIES = 0
 
@@ -68,6 +68,10 @@ class Simulation:
     def get_stats(self):
         maj_same_group, maj_diff_group = get_stats_for(self.majorities)
         min_same_group, min_diff_group = get_stats_for(self.minorities)
+        maj_high = len((filter(lambda c: c.cur_strategy.diff_group_ask == credit_game.HIGH, self.majorities)))
+        min_high = len((filter(lambda c: c.cur_strategy.diff_group_ask == credit_game.HIGH, self.minorities)))
+        maj_low = len((filter(lambda c: c.cur_strategy.diff_group_ask == credit_game.LOW, self.majorities)))
+        min_low = len((filter(lambda c: c.cur_strategy.diff_group_ask == credit_game.LOW, self.minorities)))
         to_print = (maj_same_group, maj_diff_group, min_same_group, min_diff_group)
 
 
@@ -85,10 +89,14 @@ class Simulation:
 
 
         return {
-            "maj->maj avg. strategy": maj_same_group,
-            "maj->min avg. strategy": maj_diff_group,
-            "min->min avg. strategy": min_same_group,
-            "min->maj avg. strategy": min_diff_group,
+                "maj_high": float(maj_high) / (float(len(self.majorities))),
+                "min_high": float(min_high) / (float(len(self.minorities))),
+                "maj_low": float(maj_low) / (float(len(self.majorities))),
+                "min_low": float(min_low) / (float(len(self.minorities))),
+#            "maj->maj avg. strategy": maj_same_group,
+#            "maj->min avg. strategy": maj_diff_group,
+#            "min->min avg. strategy": min_same_group,
+#            "min->maj avg. strategy": min_diff_group,
 #            "total collaborations": total,
 #            "diverse collaborations": diverse,
 #            "fair collaborations": fair,
