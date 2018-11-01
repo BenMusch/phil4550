@@ -14,6 +14,8 @@ MINORITY = "MINORITY"
 MAJORITY_SIZE = 800
 MINORITY_SIZE = 200
 
+NUM_ALLIES = 200
+
 ROUNDS = 10000000
 
 UPDATE_STRATEGY = 4
@@ -33,8 +35,9 @@ def generate_strat_set():
             strat_set.append(AskStrategy(same_group_ask, diff_group_ask))
     return strat_set
 
-minorities = [ Collaborator(generate_strat_set(), MINORITY, UPDATE_STRATEGY) for _ in range(MINORITY_SIZE) ]
-majorities = [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY) for _ in range(MAJORITY_SIZE) ]
+minorities = [ Collaborator(generate_strat_set(), MINORITY, UPDATE_STRATEGY, False) for _ in range(MINORITY_SIZE) ]
+majorities = [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY, False) for _ in range(MAJORITY_SIZE - NUM_ALLIES) ]
+majorities = [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY, True) for _ in range(NUM_ALLIES) ]
 all_collaborators = minorities + majorities
 
 ################################################################################

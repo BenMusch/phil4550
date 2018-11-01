@@ -14,10 +14,8 @@ class AskStrategy:
 
 class Collaborator:
     """Represents a single collaborator in a network"""
-    def __init__(self, strategy_set, group, strategy_number):
+    def __init__(self, strategy_set, group, strategy_number, is_ally):
         self.collaborations = set()
-        self.strategy_set = strategy_set
-        self.cur_strategy = random.sample(self.strategy_set, 1)[0]
         self.group = group
         self.last_collaboration_attempt = None
         updates = [
@@ -27,6 +25,17 @@ class Collaborator:
                 self.update_strategy_3,
                 self.update_strategy_4]
         self.update_strategy = updates[strategy_number]
+        self.is_ally = is_ally
+        self.strategy_set = filter(self.strategy_filter, strategy_set)
+        self.cur_strategy = random.sample(self.strategy_set, 1)[0]
+
+    def strategy_filter(self, strategy):
+        if not self.is_ally: return True
+        return strategy.same_group_ask == strategy.diff_group_ask
+
+    def collaborator_filter(self, collaborator):
+        # TODO: For other conceptions of ally-ship
+        return True
 
     def ask_for(self, other):
         return self._ask_for(other, self.cur_strategy)
@@ -149,14 +158,15 @@ class Collaborator:
         best_options = strategies_by_payoff[max_payoff]
         if self.cur_strategy in best_options: return
 
-        # the new strategy should have one of the two factors in-common
-        # with the old one, since we are only updating based on 1 request
+        # If possible, pick one that is similar to the current strategy in some
+        # way
         for strategy in best_options:
             if self.cur_strategy.same_group_ask == strategy.same_group_ask or \
                     self.cur_strategy.diff_group_ask == strategy.diff_group_ask:
                 self.cur_strategy = strategy
                 return
-        raise ValueError('Couldn\'t find new strategy')
+        # Else, pick a random one
+        self.cur_strategy = random.sample(best_options, 1)[0]
 
 
     def _ask_for(self, other, strategy):
