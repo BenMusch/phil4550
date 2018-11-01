@@ -14,7 +14,9 @@ MINORITY = "MINORITY"
 MAJORITY_SIZE = 800
 MINORITY_SIZE = 200
 
-ROUNDS = 100000
+ROUNDS = 10000000
+
+UPDATE_STRATEGY = 4
 
 def get_updates_per_round():
     return random.sample(range(1,20), 1)[0]
@@ -31,8 +33,8 @@ def generate_strat_set():
             strat_set.append(AskStrategy(same_group_ask, diff_group_ask))
     return strat_set
 
-minorities = [ Collaborator(generate_strat_set(), MINORITY) for _ in range(MINORITY_SIZE) ]
-majorities = [ Collaborator(generate_strat_set(), MAJORITY) for _ in range(MAJORITY_SIZE) ]
+minorities = [ Collaborator(generate_strat_set(), MINORITY, UPDATE_STRATEGY) for _ in range(MINORITY_SIZE) ]
+majorities = [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY) for _ in range(MAJORITY_SIZE) ]
 all_collaborators = minorities + majorities
 
 ################################################################################
@@ -45,14 +47,18 @@ def do_ask():
         asker, askee = random.sample(all_collaborators, 2)
         while asker in collaborators_seen or askee in collaborators_seen:
             asker, askee = random.sample(all_collaborators, 2)
+        collaborators_seen.add(asker)
+        collaborators_seen.add(askee)
         potential_collaboration = asker.collaboration_with(askee)
         askee.last_collaboration_attempt = potential_collaboration
         asker.last_collaboration_attempt = potential_collaboration
         if asker.should_collaborate_with(askee) and askee.should_collaborate_with(asker):
             potential_collaboration.start()
+    return collaborators_seen
 
-def do_update():
-    for collaborator in random.sample(all_collaborators, get_updates_per_round()):
+def do_update(collaborators):
+    sample_size = min(len(collaborators), get_updates_per_round())
+    for collaborator in random.sample(collaborators, sample_size):
         collaborator.update_strategy()
 
 def finish_round():
@@ -102,8 +108,11 @@ def avg(sample):
 
 for i in range(ROUNDS):
     if i % 10000 == 0: print_stats()
-    do_ask()
-    do_update()
+    asked = do_ask()
+    if UPDATE_STRATEGY == 4:
+        do_update(asked)
+    else:
+        do_update(all_collaborators)
     finish_round()
 
 print('')
