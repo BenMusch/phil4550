@@ -15,17 +15,17 @@ MINORITY = "MINORITY"
 MAJORITY_SIZE = 800
 MINORITY_SIZE = 200
 
-NUM_ALLIES = 0
+NUM_ALLIES = 200
 
-ROUNDS = 500000
+ROUNDS = 20000
 
 UPDATE_STRATEGY = 4
 
 def get_updates_per_round():
-    return random.sample(range(1,20), 1)[0]
+    return (MAJORITY_SIZE + MINORITY_SIZE) / 10
 
 def get_collabs_per_round():
-    return random.sample(range(2,10), 1)[0]
+    return (MAJORITY_SIZE + MINORITY_SIZE) / 10
 
 ASK_STRATEGIES = [credit_game.LOW, credit_game.MED, credit_game.HIGH]
 
@@ -68,8 +68,9 @@ class Simulation:
             collaborator.last_collaboration_attempt = None
 
     def run(self):
-        print('starting')
         for i in range(ROUNDS):
+            if i % (ROUNDS / 10) == 0:
+                print("%s percent done" % (100.0 * float(i) / float(ROUNDS)))
             asked = self.do_ask()
             if UPDATE_STRATEGY == 4:
                 self.do_update(asked)
@@ -135,6 +136,6 @@ def run_simul():
     sim = Simulation()
     return sim.run()
 
-ps = [ Process(target=run_simul, args=()) for _ in range(100) ]
+ps = [ Process(target=run_simul, args=()) for _ in range(10) ]
 [ p.start() for p in ps ]
 [ p.join() for p in ps ]
