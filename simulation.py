@@ -20,12 +20,7 @@ NUM_ALLIES = 0
 ROUNDS = 20000
 
 UPDATE_STRATEGY = 4
-
-def get_updates_per_round():
-    return (MAJORITY_SIZE + MINORITY_SIZE) / 10
-
-def get_collabs_per_round():
-    return (MAJORITY_SIZE + MINORITY_SIZE) / 10
+ACTIONS_PER_ROUND = (MAJORITY_SIZE + MINORITY_SIZE) / 10
 
 ASK_STRATEGIES = [credit_game.LOW, credit_game.MED, credit_game.HIGH]
 
@@ -43,35 +38,29 @@ class Simulation:
         self.majorities += [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY, True) for _ in range(NUM_ALLIES) ]
         self.all_collaborators = self.minorities + self.majorities
 
-    def do_ask(self):
-        collaborators_seen = set()
-        for _ in range(get_collabs_per_round()):
-            asker, askee = random.sample(self.all_collaborators, 2)
-            while asker in collaborators_seen or askee in collaborators_seen:
-                asker, askee = random.sample(self.all_collaborators, 2)
-            collaborators_seen.add(asker)
-            collaborators_seen.add(askee)
+    def do_ask(self, askers):
+        for asker in askers:
+            askee = random.sample(self.all_collaborators, 1)[0]
+            while askee == asker or asker.collaborates_with(askee):
+                askee = random.sample(self.all_collaborators, 1)[0]
             potential_collaboration = asker.collaboration_with(askee)
             askee.last_collaboration_attempt = potential_collaboration
             asker.last_collaboration_attempt = potential_collaboration
             if asker.should_collaborate_with(askee) and askee.should_collaborate_with(asker):
                 potential_collaboration.start()
-        return collaborators_seen
 
     def do_update(self, collaborators):
-        sample_size = min(len(collaborators), get_updates_per_round())
-        for collaborator in random.sample(collaborators, sample_size):
+        for collaborator in collaborators:
             collaborator.update_strategy()
 
     def run(self):
         for i in range(ROUNDS):
             if i % (ROUNDS / 10) == 0:
                 print("%s percent done" % (100.0 * float(i) / float(ROUNDS)))
-            asked = self.do_ask()
-            if UPDATE_STRATEGY == 4:
-                self.do_update(asked)
-            else:
-                self.do_update(self.all_collaborators)
+            sample = random.sample(self.all_collaborators, ACTIONS_PER_ROUND)
+            split_index = len(sample) / 5
+            self.do_ask(sample[:split_index])
+            self.do_update(sample[split_index:])
         stats = self.get_stats()
         print(stats)
         return stats
