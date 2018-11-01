@@ -14,9 +14,9 @@ MINORITY = "MINORITY"
 MAJORITY_SIZE = 800
 MINORITY_SIZE = 200
 
-NUM_ALLIES = 200
+NUM_ALLIES = 0
 
-ROUNDS = 10000000
+ROUNDS = 1000000
 
 UPDATE_STRATEGY = 4
 
@@ -37,8 +37,14 @@ def generate_strat_set():
 
 minorities = [ Collaborator(generate_strat_set(), MINORITY, UPDATE_STRATEGY, False) for _ in range(MINORITY_SIZE) ]
 majorities = [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY, False) for _ in range(MAJORITY_SIZE - NUM_ALLIES) ]
-majorities = [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY, True) for _ in range(NUM_ALLIES) ]
+majorities += [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY, True) for _ in range(NUM_ALLIES) ]
 all_collaborators = minorities + majorities
+
+def reset():
+    minorities = [ Collaborator(generate_strat_set(), MINORITY, UPDATE_STRATEGY, False) for _ in range(MINORITY_SIZE) ]
+    majorities = [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY, False) for _ in range(MAJORITY_SIZE - NUM_ALLIES) ]
+    majorities += [ Collaborator(generate_strat_set(), MAJORITY, UPDATE_STRATEGY, True) for _ in range(NUM_ALLIES) ]
+    all_collaborators = minorities + majorities
 
 ################################################################################
 # ACTIONS ######################################################################
@@ -72,16 +78,17 @@ def finish_round():
 # ANALYSIS #####################################################################
 ################################################################################
 
-def get_stats(collaborators):
+def get_stats_for(collaborators):
     same_group = [ float(c.cur_strategy.same_group_ask) for c in collaborators ]
     diff_group = [ float(c.cur_strategy.diff_group_ask) for c in collaborators ]
 
     return avg(same_group), avg(diff_group)
 
 def print_stats():
-    maj_same_group, maj_diff_group = get_stats(majorities)
-    min_same_group, min_diff_group = get_stats(minorities)
+    maj_same_group, maj_diff_group = get_stats_for(majorities)
+    min_same_group, min_diff_group = get_stats_for(minorities)
     to_print = (maj_same_group, maj_diff_group, min_same_group, min_diff_group)
+
 
     total = 0.0
     fair = 0.0
@@ -96,7 +103,20 @@ def print_stats():
             if collaboration.is_fair(): fair += 0.5
 
 
-    print('maj->maj=%s maj->min=%s min->min=%s min->maj=%s' % to_print)
+    return {
+        "majority->majority avg. strategy": maj_same_group,
+        "majority->minority avg. strategy": maj_diff_group,
+        "minority->minority avg. strategy": min_same_group,
+        "minority->majority avg. strategy": min_diff_group,
+        "total collaborations": total,
+        "diverse collaborations": diverse,
+        "fair collaborations": fair,
+        "minority favorable unfair collaborations": winning[MINORITY],
+        "majorify favorable unfair collaborations": winning[MAJORITY],
+        "total minorities": MINORITY_SIZE,
+        "total majorities": MAJORITY_SIZE,
+        "total allies": NUM_ALLIES,
+    }
     if total > 0:
         print('%s/%s = %s diverse collab rate' % (diverse, total, diverse / total))
         print('%s/%s = %s fair collab rate' % (fair, total, fair / total))
@@ -109,15 +129,17 @@ def avg(sample):
 # MAIN #########################################################################
 ################################################################################
 
-for i in range(ROUNDS):
-    if i % 10000 == 0: print_stats()
-    asked = do_ask()
-    if UPDATE_STRATEGY == 4:
-        do_update(asked)
-    else:
-        do_update(all_collaborators)
-    finish_round()
+def do_simulation():
+    for i in range(ROUNDS):
+        #if i % 10000 == 0: print_stats()
+        asked = do_ask()
+        if UPDATE_STRATEGY == 4:
+            do_update(asked)
+        else:
+            do_update(all_collaborators)
+        finish_round()
+    stats = get_stats()
+    print(stats)
+    reset()
 
-print('')
-print('FINAL')
-print_stats()
+[ do_simulation() for _ in range(100) ]
