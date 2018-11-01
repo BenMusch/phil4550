@@ -15,7 +15,7 @@ MINORITY = "MINORITY"
 MAJORITY_SIZE = 800
 MINORITY_SIZE = 200
 
-NUM_ALLIES = 200
+NUM_ALLIES = 0
 
 ROUNDS = 20000
 
@@ -63,10 +63,6 @@ class Simulation:
         for collaborator in random.sample(collaborators, sample_size):
             collaborator.update_strategy()
 
-    def finish_round(self):
-        for collaborator in self.all_collaborators:
-            collaborator.last_collaboration_attempt = None
-
     def run(self):
         for i in range(ROUNDS):
             if i % (ROUNDS / 10) == 0:
@@ -75,8 +71,7 @@ class Simulation:
             if UPDATE_STRATEGY == 4:
                 self.do_update(asked)
             else:
-                self.do_update(all_collaborators)
-            self.finish_round()
+                self.do_update(self.all_collaborators)
         stats = self.get_stats()
         print(stats)
         return stats
@@ -101,18 +96,18 @@ class Simulation:
 
 
         return {
-            "majority->majority avg. strategy": maj_same_group,
-            "majority->minority avg. strategy": maj_diff_group,
-            "minority->minority avg. strategy": min_same_group,
-            "minority->majority avg. strategy": min_diff_group,
-            "total collaborations": total,
-            "diverse collaborations": diverse,
-            "fair collaborations": fair,
-            "minority favorable unfair collaborations": winning[MINORITY],
-            "majorify favorable unfair collaborations": winning[MAJORITY],
-            "total minorities": MINORITY_SIZE,
-            "total majorities": MAJORITY_SIZE,
-            "total allies": NUM_ALLIES,
+            "maj->maj avg. strategy": maj_same_group,
+            "maj->min avg. strategy": maj_diff_group,
+            "min->min avg. strategy": min_same_group,
+            "min->maj avg. strategy": min_diff_group,
+#            "total collaborations": total,
+#            "diverse collaborations": diverse,
+#            "fair collaborations": fair,
+#            "minority favorable unfair collaborations": winning[MINORITY],
+#            "majorify favorable unfair collaborations": winning[MAJORITY],
+#            "total minorities": len(self.minorities),
+#            "total majorities": len(self.majorities),
+#            "total allies": NUM_ALLIES,
         }
 
 ################################################################################

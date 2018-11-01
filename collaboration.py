@@ -153,6 +153,10 @@ class Collaborator:
 
         max_payoff = -1
         strategies_by_payoff = {}
+        #print('-')
+        #print(self.group)
+        #print(self.last_collaboration_attempt)
+        #print(self.cur_strategy)
         for strategy in self.strategy_set:
             my_ask = self._ask_for(them, strategy)
             payoff = credit_game.get_payoffs(my_ask, their_ask)[0]
@@ -161,7 +165,12 @@ class Collaborator:
             max_payoff = max(max_payoff, payoff)
 
         best_options = strategies_by_payoff[max_payoff]
-        if self.cur_strategy in best_options: return
+        not_better_than_worst = len(self.collaborations) == MAX_COLLABORATORS and \
+                self.worst_collaboration().credit_for(self) >= max_payoff
+        if self.cur_strategy in best_options or max_payoff == 0 or not_better_than_worst:
+            #print(self.cur_strategy)
+            return
+        random.shuffle(best_options)
 
         # If possible, pick one that is similar to the current strategy in some
         # way
@@ -169,8 +178,10 @@ class Collaborator:
             if self.cur_strategy.same_group_ask == strategy.same_group_ask or \
                     self.cur_strategy.diff_group_ask == strategy.diff_group_ask:
                 self.cur_strategy = strategy
+                #print(strategy)
                 return
         # Else, pick a random one
+        raise ValueError('shouldnt happen with no allies')
         self.cur_strategy = random.sample(best_options, 1)[0]
 
 
@@ -224,7 +235,8 @@ class Collaboration:
         self.collab_b.collaborations.remove(self)
 
     def __repr__(self):
-        return "<a={} b={}>".format(self.collab_a, self.collab_b)
+        return "<a={},{} b={},{}>".format(self.collab_a.group, self.a_ask,
+                self.collab_b.group, self.b_ask)
 
     def _return_if(self, collaborator, if_a, if_b):
         if collaborator == self.collab_a:
