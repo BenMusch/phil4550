@@ -46,10 +46,15 @@ class Collaborator:
 
     def should_collaborate_with(self, other):
         our_collab_credit = self.collaboration_with(other).credit_for(self)
-        return our_collab_credit > 0 and \
-                (not self.collaborations or \
-                 self.worst_collaboration().credit_for(self) < our_collab_credit or \
-                 len(self.collaborations) < MAX_COLLABORATORS)
+        return our_collab_credit > 0 and not self.collaborates_with(other) and \
+                (len(self.collaborations) < MAX_COLLABORATORS or \
+                 self.worst_collaboration().credit_for(self) < our_collab_credit)
+
+    def collaborates_with(self, other):
+        return other in self.collaborators()
+
+    def collaborators(self):
+        return [ c.collaborator_for(self) for c in self.collaborations]
 
     def worst_collaboration(self):
         if not self.collaborations:
