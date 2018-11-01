@@ -42,19 +42,26 @@ class Collaborator:
 
     def collaboration_with(self, other):
         my_ask, their_ask = self.ask_for(other), other.ask_for(self)
-        return Collaboration(self, other, my_ask, their_ask)
+        return Collaboration(self, other, my_ask, their_ask,
+                self.minimum_payoff_acceptable(), other.minimum_payoff_acceptable())
 
     def should_collaborate_with(self, other):
         our_collab_credit = self.collaboration_with(other).credit_for(self)
         return our_collab_credit > 0 and not self.collaborates_with(other) and \
-                (len(self.collaborations) < MAX_COLLABORATORS or \
-                 self.worst_collaboration().credit_for(self) < our_collab_credit)
+                (self.minimum_payoff_acceptable() <= our_collab_credit)
 
     def collaborates_with(self, other):
         return other in self.collaborators()
 
     def collaborators(self):
         return [ c.collaborator_for(self) for c in self.collaborations]
+
+    def minimum_payoff_acceptable(self):
+        if not self.collaborations: return 0
+        if len(self.collaborations) < MAX_COLLABORATORS:
+            return self.worst_collaboration().credit_for(self)
+        else:
+            return self.worst_collaboration().credit_for(self) + 1
 
     def worst_collaboration(self):
         if not self.collaborations:
@@ -149,24 +156,25 @@ class Collaborator:
         c = self.last_collaboration_attempt
 
         them = c.collaborator_for(self)
-        their_ask = c.ask_from(them)
+        their_ask, their_min = c.ask_from(them), c.min_for(them)
 
         max_payoff = -1
         strategies_by_payoff = {}
         #print('-')
         #print(self.group)
-        #print(self.last_collaboration_attempt)
+        #print(self._collab_str(self.last_collaboration_attempt))
         #print(self.cur_strategy)
+        #print(",".join([ self._collab_str(c) for c in self.collaborations ]))
         for strategy in self.strategy_set:
             my_ask = self._ask_for(them, strategy)
-            payoff = credit_game.get_payoffs(my_ask, their_ask)[0]
+            payoff, their_payoff = credit_game.get_payoffs(my_ask, their_ask)
+            if their_payoff < their_min: continue
             if payoff not in strategies_by_payoff: strategies_by_payoff[payoff] = []
             strategies_by_payoff[payoff].append(strategy)
             max_payoff = max(max_payoff, payoff)
 
-        best_options = strategies_by_payoff[max_payoff]
-        not_better_than_worst = len(self.collaborations) == MAX_COLLABORATORS and \
-                self.worst_collaboration().credit_for(self) >= max_payoff
+        best_options = strategies_by_payoff[max_payoff] if max_payoff > -1 else []
+        not_better_than_worst = self.minimum_payoff_acceptable() > max_payoff
         if self.cur_strategy in best_options or max_payoff == 0 or not_better_than_worst:
             #print(self.cur_strategy)
             return
@@ -192,19 +200,27 @@ class Collaborator:
     def __repr__(self):
         return "<group={} strat={}>".format(self.group, self.cur_strategy)
 
+    def _collab_str(self, collab):
+        return "{}={},{}".format(collab, collab.ask_from(self), collab.credit_for(self))
+
 
 class Collaboration:
-    def __init__(self, collab_a, collab_b, a_ask, b_ask):
+    def __init__(self, collab_a, collab_b, a_ask, b_ask, a_min, b_min):
         self.collab_a = collab_a
         self.collab_b = collab_b
         self.a_ask = a_ask
         self.b_ask = b_ask
+        self.a_min = a_min
+        self.b_min = b_min
 
     def ask_from(self, collaborator):
         return self._return_if(collaborator, self.a_ask, self.b_ask)
 
     def collaborator_for(self, collaborator):
         return self._return_if(collaborator, self.collab_b, self.collab_a)
+
+    def min_for(self, collaborator):
+        return self._return_if(collaborator, self.a_min, self.b_min)
 
     def credit_for(self, collaborator):
         a_credit, b_credit = credit_game.get_payoffs(self.a_ask, self.b_ask)
